@@ -37,7 +37,8 @@ app.post('/shorten', authMiddleware, rateLimitMiddleware, async (req, res) => {
       'INSERT INTO urls (short_code, long_url, user_id) VALUES ($1, $2, $3)',
       [shortCode, longUrl, req.userId]
     );
-    res.json({ shortUrl: `http://localhost:3000/${shortCode}` });
+   const baseUrl = process.env.BASE_URL || `http://localhost:3000`;
+res.json({ shortUrl: `${baseUrl}/${shortCode}` });
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'That alias is already taken' });
