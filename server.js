@@ -104,9 +104,10 @@ app.get('/analytics/:shortCode', authMiddleware, async (req, res) => {
 });
 app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
+  const skipCache = req.query.nocache === 'true';
 
   try {
-    const cachedUrl = await redisClient.get(shortCode);
+    const cachedUrl = skipCache ? null : await redisClient.get(shortCode);
     let longUrl = cachedUrl;
 
     if (cachedUrl) {
@@ -124,7 +125,9 @@ app.get('/:shortCode', async (req, res) => {
       }
 
       longUrl = result.rows[0].long_url;
-      await redisClient.set(shortCode, longUrl, { EX: 3600 });
+      if (!skipCache) {
+        await redisClient.set(shortCode, longUrl, { EX: 3600 });
+      }
     }
 
     logClick(shortCode, req).catch(err => console.error('Click logging failed:', err));
