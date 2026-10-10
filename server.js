@@ -37,9 +37,8 @@ app.post('/shorten', authMiddleware, rateLimitMiddleware, async (req, res) => {
       'INSERT INTO urls (short_code, long_url, user_id) VALUES ($1, $2, $3)',
       [shortCode, longUrl, req.userId]
     );
-    console.log('DEBUG - BASE_URL value:', process.env.BASE_URL);
-   const baseUrl = process.env.BASE_URL || `http://localhost:3000`;
-   res.json({ shortUrl: `${baseUrl}/${shortCode}` });
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    res.json({ shortUrl: `${baseUrl}/${shortCode}` });
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'That alias is already taken' });
@@ -48,6 +47,7 @@ app.post('/shorten', authMiddleware, rateLimitMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
+
 app.get('/analytics/:shortCode', authMiddleware, async (req, res) => {
   const { shortCode } = req.params;
 
@@ -102,12 +102,16 @@ app.get('/analytics/:shortCode', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
+
 app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   const skipCache = req.query.nocache === 'true';
 
   try {
+    const t0 = Date.now();
     const cachedUrl = skipCache ? null : await redisClient.get(shortCode);
+    if (!skipCache) console.log(`Redis GET took ${Date.now() - t0}ms`);
+
     let longUrl = cachedUrl;
 
     if (cachedUrl) {
